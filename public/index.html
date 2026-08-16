@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#171126" />
+  <title>Asta Mantra 2026/27</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <div id="loginScreen" class="login-screen hidden">
+    <form id="loginForm" class="login-card">
+      <div class="brand-mark">M</div>
+      <div>
+        <p class="eyebrow">AREA PERSONALE</p>
+        <h1>Asta Mantra</h1>
+        <p class="muted">Inserisci il PIN configurato su Railway.</p>
+      </div>
+      <label class="field-label">PIN</label>
+      <input id="pinInput" class="input input-big" type="password" inputmode="numeric" autocomplete="current-password" placeholder="••••" />
+      <button class="btn btn-primary btn-wide" type="submit">Entra</button>
+      <p id="loginError" class="error-text"></p>
+    </form>
+  </div>
+
+  <div id="app" class="app hidden">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark small">M</div>
+        <div>
+          <p class="eyebrow">FANTACALCIO MANTRA · 2026/27</p>
+          <h1>Asta Mantra</h1>
+        </div>
+      </div>
+      <div class="header-kpis">
+        <div class="mini-kpi"><span>Crediti</span><strong id="kpiRemaining">500</strong></div>
+        <div class="mini-kpi"><span>Rosa</span><strong id="kpiRoster">0/35</strong></div>
+        <div class="mini-kpi"><span>Speso</span><strong id="kpiSpent">0</strong></div>
+      </div>
+      <div class="header-actions">
+        <button id="settingsBtn" class="icon-btn" title="Impostazioni" aria-label="Impostazioni">⚙</button>
+        <button id="exportBtn" class="icon-btn" title="Backup" aria-label="Backup">⇩</button>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="dashboard"><span>⌕</span> Asta</button>
+      <button class="tab" data-tab="roster"><span>◫</span> Rosa</button>
+      <button class="tab" data-tab="budget"><span>◔</span> Budget</button>
+      <button class="tab" data-tab="field"><span>⌗</span> Campo</button>
+    </nav>
+
+    <main class="main-shell">
+      <section id="tab-dashboard" class="tab-panel active">
+        <div class="hero-grid">
+          <article class="hero-card">
+            <div class="hero-copy">
+              <p class="eyebrow">RICERCA CALCIATORE</p>
+              <h2>Trova, valuta e acquista.</h2>
+              <p class="muted">PMA FantaLab, prezzo della tua asta 2025, statistiche e ruolo Mantra in un’unica scheda.</p>
+            </div>
+            <div class="hero-score">
+              <span>Media disponibile / posto</span>
+              <strong id="avgPerSlot">14.3</strong>
+              <small>crediti</small>
+            </div>
+          </article>
+
+          <article class="status-card" id="budgetGuardCard">
+            <div class="status-icon">✓</div>
+            <div>
+              <span class="status-title">Budget sotto controllo</span>
+              <p id="budgetGuardText">Puoi completare la rosa mantenendo 1 credito per ogni slot libero.</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="search-shell">
+          <div class="searchbar">
+            <span class="search-icon">⌕</span>
+            <input id="searchInput" autocomplete="off" placeholder="Cerca un calciatore…" />
+            <button id="clearSearch" class="clear-btn hidden" aria-label="Cancella ricerca">×</button>
+          </div>
+          <div class="filters-row">
+            <select id="roleFilter" class="select compact">
+              <option value="">Tutti i ruoli</option>
+              <option>Por</option><option>Dc</option><option>B</option><option>Dd</option><option>Ds</option><option>E</option>
+              <option>M</option><option>C</option><option>W</option><option>T</option><option>A</option><option>Pc</option>
+            </select>
+            <select id="sortFilter" class="select compact">
+              <option value="name">Nome A–Z</option>
+              <option value="pma-desc">PMA più alto</option>
+              <option value="fvm-desc">FVM/1000</option>
+              <option value="price2025-desc">Prezzo 2025</option>
+            </select>
+            <button id="favoritesOnly" class="chip-toggle">☆ Preferiti</button>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">LISTONE</p>
+            <h3 id="resultsTitle">Calciatori</h3>
+          </div>
+          <span id="resultsCount" class="count-pill">0</span>
+        </div>
+        <div id="playersGrid" class="players-grid"></div>
+      </section>
+
+      <section id="tab-roster" class="tab-panel">
+        <div class="section-toolbar">
+          <div>
+            <p class="eyebrow">MIA ROSA</p>
+            <h2>Acquisti</h2>
+            <p class="muted">Ogni multiruolo viene conteggiato nel singolo ruolo scelto al momento dell’acquisto.</p>
+          </div>
+          <div class="toolbar-actions">
+            <button id="exportCsvBtn" class="btn btn-secondary">Esporta CSV</button>
+          </div>
+        </div>
+
+        <div id="rosterEmpty" class="empty-card hidden">
+          <div class="empty-icon">＋</div>
+          <h3>Nessun acquisto ancora</h3>
+          <p>Cerca un calciatore nella sezione Asta e premi “Acquista”.</p>
+        </div>
+
+        <div id="rosterContent">
+          <div class="role-summary" id="roleSummary"></div>
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="roster-table">
+                <thead><tr><th>Calciatore</th><th>Ruoli</th><th>Ruolo budget</th><th>Prezzo</th><th>PMA 500</th><th></th></tr></thead>
+                <tbody id="rosterRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-budget" class="tab-panel">
+        <div class="section-toolbar">
+          <div>
+            <p class="eyebrow">GESTIONE BUDGET</p>
+            <h2>Budget dinamico</h2>
+            <p class="muted">La quota non usata viene redistribuita tra le fasce ancora aperte, mantenendo il minimo necessario per completare la rosa.</p>
+          </div>
+          <button id="budgetSettingsBtn" class="btn btn-secondary">Modifica fasce</button>
+        </div>
+
+        <div class="budget-overview">
+          <article class="big-kpi"><span>Speso</span><strong id="budgetSpent">0</strong><small>/ 500</small></article>
+          <article class="big-kpi"><span>Rimasti</span><strong id="budgetRemaining">500</strong><small>crediti</small></article>
+          <article class="big-kpi"><span>Rosa</span><strong id="budgetRoster">0</strong><small>/ 35</small></article>
+          <article class="big-kpi"><span>Max prossimo</span><strong id="maxNextBid">466</strong><small>crediti</small></article>
+        </div>
+
+        <div id="budgetGrid" class="budget-grid"></div>
+      </section>
+
+      <section id="tab-field" class="tab-panel">
+        <div class="field-toolbar">
+          <div>
+            <p class="eyebrow">FORMAZIONE</p>
+            <h2>Il tuo undici</h2>
+            <p class="muted">Seleziona un modulo e tocca una posizione per assegnare un giocatore della rosa.</p>
+          </div>
+          <div class="field-actions">
+            <select id="formationSelect" class="select"></select>
+            <button id="autoLineupBtn" class="btn btn-secondary">Auto schiera</button>
+            <button id="clearLineupBtn" class="btn btn-ghost">Svuota</button>
+          </div>
+        </div>
+
+        <div class="field-layout">
+          <div class="pitch-wrap">
+            <div class="pitch" id="pitch">
+              <div class="pitch-half"></div>
+              <div class="center-circle"></div>
+              <div class="box box-top"></div>
+              <div class="box box-bottom"></div>
+              <div id="pitchSlots"></div>
+            </div>
+          </div>
+          <aside class="bench-card">
+            <div class="section-head tight">
+              <div><p class="eyebrow">ROSA</p><h3>Disponibili</h3></div>
+              <span id="benchCount" class="count-pill">0</span>
+            </div>
+            <div id="benchList" class="bench-list"></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <dialog id="playerDialog" class="modal">
+    <div id="playerDialogContent"></div>
+  </dialog>
+
+  <dialog id="buyDialog" class="modal modal-small">
+    <form id="buyForm" method="dialog">
+      <div class="modal-head">
+        <div><p class="eyebrow">ACQUISTO</p><h3 id="buyPlayerName">Calciatore</h3></div>
+        <button type="button" class="modal-close" data-close="buyDialog">×</button>
+      </div>
+      <div id="buyPlayerMeta" class="buy-player-meta"></div>
+      <label class="field-label" for="buyPrice">Prezzo</label>
+      <input id="buyPrice" class="input input-big" type="number" min="1" step="1" inputmode="numeric" required />
+      <label class="field-label" for="buyRole">Ruolo da conteggiare nel budget</label>
+      <select id="buyRole" class="select input-big" required></select>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close="buyDialog">Annulla</button>
+        <button type="submit" class="btn btn-primary">Salva acquisto</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="slotDialog" class="modal modal-small">
+    <div class="modal-head">
+      <div><p class="eyebrow">CAMPO</p><h3 id="slotTitle">Assegna giocatore</h3></div>
+      <button type="button" class="modal-close" data-close="slotDialog">×</button>
+    </div>
+    <label class="check-row"><input id="showAllSlotPlayers" type="checkbox" /> Mostra anche giocatori non compatibili</label>
+    <div id="slotPlayers" class="slot-players"></div>
+    <button id="removeFromSlotBtn" class="btn btn-danger btn-wide hidden">Rimuovi da questa posizione</button>
+  </dialog>
+
+  <dialog id="settingsDialog" class="modal modal-settings">
+    <form id="settingsForm" method="dialog">
+      <div class="modal-head">
+        <div><p class="eyebrow">IMPOSTAZIONI</p><h3>Struttura asta</h3></div>
+        <button type="button" class="modal-close" data-close="settingsDialog">×</button>
+      </div>
+      <div class="settings-top-grid">
+        <label><span class="field-label">Budget totale</span><input id="settingsBudgetTotal" class="input" type="number" min="1" /></label>
+        <label><span class="field-label">Rosa obiettivo</span><input id="settingsRosterTarget" class="input" type="number" min="11" /></label>
+      </div>
+      <div class="settings-table-wrap">
+        <table class="settings-table">
+          <thead><tr><th>Fascia</th><th>Target</th><th>% iniziale</th></tr></thead>
+          <tbody id="settingsBudgetRows"></tbody>
+        </table>
+      </div>
+      <div class="settings-validation" id="settingsValidation"></div>
+      <div class="modal-actions split">
+        <button id="restoreExcelBudget" type="button" class="btn btn-ghost">Ripristina Excel</button>
+        <div>
+          <button type="button" class="btn btn-ghost" data-close="settingsDialog">Annulla</button>
+          <button type="submit" class="btn btn-primary">Salva</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="backupDialog" class="modal modal-small">
+    <div class="modal-head">
+      <div><p class="eyebrow">DATI</p><h3>Backup e ripristino</h3></div>
+      <button type="button" class="modal-close" data-close="backupDialog">×</button>
+    </div>
+    <div class="backup-stack">
+      <button id="downloadBackupBtn" class="btn btn-secondary btn-wide">Scarica backup JSON</button>
+      <label class="btn btn-ghost btn-wide file-btn">Importa backup JSON<input id="importBackupInput" type="file" accept="application/json" hidden /></label>
+      <button id="logoutBtn" class="btn btn-ghost btn-wide">Esci</button>
+      <button id="resetAppBtn" class="btn btn-danger btn-wide">Azzera tutta l’asta</button>
+    </div>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>
