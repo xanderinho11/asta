@@ -82,7 +82,7 @@ const server = http.createServer(async (req,res) => {
     if (p === '/api/logout' && req.method === 'POST') return json(res,200,{ok:true},{'Set-Cookie':'asta_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0'});
 
     if (p.startsWith('/api/') && !isAuthed(req)) return json(res,401,{error:'AUTH_REQUIRED'});
-    if (p === '/api/players' && req.method === 'GET') return serveFile(res, PLAYERS_PATH, true);
+    if (p === '/api/players' && req.method === 'GET') return serveFile(res, PLAYERS_PATH, false);
     if (p === '/api/state' && req.method === 'GET') return json(res,200,JSON.parse(fs.readFileSync(STATE_PATH,'utf8')));
     if (p === '/api/state' && req.method === 'PUT') {
       const body = await readBody(req); body.updatedAt = new Date().toISOString(); writeStateAtomic(body); return json(res,200,{ok:true,updatedAt:body.updatedAt});

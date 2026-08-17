@@ -214,6 +214,20 @@ function roleBadges(roles=[]) {
   return roles.map(r => `<span class="role-badge role-${r}">${r}</span>`).join('');
 }
 
+function roleChips(roles=[]) {
+  return roles.map(r => `<span class="role-chip role-chip-${r}">${escapeHtml(r)}</span>`).join('');
+}
+
+function playerPortrait(p, extraClass='') {
+  const photo = p?.photoUrl ? `<img class="player-photo" src="${escapeAttr(p.photoUrl)}" alt="${escapeAttr(p.name || 'Calciatore')}" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">` : '';
+  const fallbackHidden = p?.photoUrl ? ' hidden' : '';
+  return `<div class="player-portrait ${extraClass}">
+    ${photo}<div class="player-photo-fallback${fallbackHidden}">${initials(p?.name)}</div>
+    <div class="role-stack">${roleChips(p?.roles || [])}</div>
+  </div>`;
+}
+
+
 function isBought(p) { return state.roster.some(r => r.playerName === p.name); }
 function isFavorite(p) { return state.favorites.includes(p.name); }
 
@@ -221,48 +235,69 @@ function filteredPlayers() {
   const q = $('#searchInput').value.trim().toLowerCase();
   const role = $('#roleFilter').value;
   const sort = $('#sortFilter').value;
+  if (!q && !role && !favoritesOnly) return [];
   let out = players.filter(p => {
-    if (q && !(`${p.name} ${p.team || ''}`.toLowerCase().includes(q))) return false;
+    if (q && !(`${p.name} ${p.fullName || ''} ${p.team || ''}`.toLowerCase().includes(q))) return false;
     if (role && !(p.roles || []).includes(role)) return false;
     if (favoritesOnly && !isFavorite(p)) return false;
     return true;
   });
   if (sort === 'pma-desc') out.sort((a,b) => Number(b.pmaCredits||0)-Number(a.pmaCredits||0) || a.name.localeCompare(b.name));
-  else if (sort === 'fvm-desc') out.sort((a,b) => Number(b.fvm1000||0)-Number(a.fvm1000||0) || a.name.localeCompare(b.name));
+  else if (sort === 'titolarita-desc') out.sort((a,b) => Number(b.titolarita||0)-Number(a.titolarita||0) || Number(b.pmaCredits||0)-Number(a.pmaCredits||0) || a.name.localeCompare(b.name));
   else if (sort === 'price2025-desc') out.sort((a,b) => Number(b.price2025||0)-Number(a.price2025||0) || a.name.localeCompare(b.name));
   else out.sort((a,b) => a.name.localeCompare(b.name));
   return out;
 }
 
 function renderPlayers() {
+  const q = $('#searchInput').value.trim();
+  const role = $('#roleFilter').value;
+  const hasIntent = Boolean(q || role || favoritesOnly);
   const out = filteredPlayers();
+  const shown = out.slice(0, 30);
+
+  $('#clearSearch').classList.toggle('hidden', !q);
+  $('#searchHint').classList.toggle('hidden', hasIntent);
+  $('#resultsSection').classList.toggle('hidden', !hasIntent);
+  if (!hasIntent) {
+    $('#playersGrid').innerHTML = '';
+    $('#resultsCount').textContent = '0';
+    $('#resultsLimitNote').classList.add('hidden');
+    return;
+  }
+
   $('#resultsCount').textContent = out.length;
-  $('#resultsTitle').textContent = $('#searchInput').value.trim() ? 'Risultati ricerca' : (favoritesOnly ? 'Preferiti' : 'Calciatori');
-  $('#clearSearch').classList.toggle('hidden', !$('#searchInput').value);
-  const shown = out.slice(0, 48);
-  $('#playersGrid').innerHTML = shown.map(p => `
-    <article class="player-card ${isBought(p) ? 'bought' : ''}" data-player="${escapeAttr(p.name)}">
-      ${isBought(p) ? '<span class="bought-ribbon">ACQUISTATO</span>' : ''}
-      <div class="player-top">
-        <div class="player-avatar">${initials(p.name)}</div>
-        <div class="player-main"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.team || p.teamCode || '—')} · Quot. ${fmtInt(p.quotation)}</span></div>
+  $('#resultsTitle').textContent = q ? 'Risultati ricerca' : (favoritesOnly ? 'Preferiti' : `Ruolo ${role}`);
+  $('#playersGrid').innerHTML = shown.map(p => {
+    const bought = state.roster.find(r => r.playerName === p.name);
+    return `<article class="player-result ${bought ? 'bought' : ''}" data-player="${escapeAttr(p.name)}">
+      <div class="result-player">
+        ${playerPortrait(p, 'result-portrait')}
+        <div class="result-player-info">
+          <div class="result-name-line"><strong>${escapeHtml(p.name)}</strong>${bought ? '<span class="bought-tag">PRESO</span>' : ''}</div>
+          <span>${escapeHtml(p.team || p.teamCode || '—')} · Quot. ${fmtInt(p.quotation)}</span>
+        </div>
+      </div>
+      <div class="result-stats">
+        <div class="result-stat"><span>PMA 500</span><strong>${fmt(p.pmaCredits)}</strong></div>
+        <div class="result-stat"><span>PMA</span><strong>${p.pmaPct != null ? `${fmt(Number(p.pmaPct)*100)}%` : '—'}</strong></div>
+        <div class="result-stat"><span>Prezzo 2025</span><strong>${fmtInt(p.price2025)}</strong></div>
+        <div class="result-stat optional-stat"><span>Titolarità</span><strong>${fmtInt(p.titolarita)}/5</strong></div>
+      </div>
+      <div class="result-actions">
         <button class="star-btn ${isFavorite(p) ? 'on' : ''}" data-fav="${escapeAttr(p.name)}" aria-label="Preferito">${isFavorite(p) ? '★' : '☆'}</button>
+        <button class="quick-buy-btn compact-buy" data-quick-buy="${escapeAttr(p.name)}">${bought ? `Modifica · ${fmtInt(bought.price)}` : 'Acquista'}</button>
       </div>
-      <div class="role-badges">${roleBadges(p.roles)}</div>
-      <div class="player-metrics">
-        <div class="metric"><span>PMA 500</span><strong>${fmt(p.pmaCredits)}</strong></div>
-        <div class="metric"><span>Prezzo 2025</span><strong>${fmtInt(p.price2025)}</strong></div>
-        <div class="metric"><span>FVM/1000</span><strong>${fmtInt(p.fvm1000)}</strong></div>
-      </div>
-      <div class="player-quick-actions">
-        <button class="quick-buy-btn" data-quick-buy="${escapeAttr(p.name)}">${isBought(p) ? 'Modifica acquisto' : 'Acquista'}</button>
-      </div>
-    </article>`).join('');
+    </article>`;
+  }).join('');
 
-  if (!shown.length) $('#playersGrid').innerHTML = `<div class="empty-card" style="grid-column:1/-1"><h3>Nessun calciatore trovato</h3><p>Prova a cambiare nome o filtri.</p></div>`;
+  if (!shown.length) $('#playersGrid').innerHTML = `<div class="empty-card compact-empty"><h3>Nessun calciatore trovato</h3><p>Prova a cambiare nome o filtri.</p></div>`;
+  const limitNote = $('#resultsLimitNote');
+  limitNote.classList.toggle('hidden', out.length <= shown.length);
+  limitNote.textContent = out.length > shown.length ? `Mostro i primi ${shown.length} risultati su ${out.length}. Affina la ricerca per restringere il listone.` : '';
 
-  $$('.player-card').forEach(card => card.addEventListener('click', e => {
-    if (e.target.closest('[data-fav]')) return;
+  $$('.player-result').forEach(card => card.addEventListener('click', e => {
+    if (e.target.closest('[data-fav], [data-quick-buy]')) return;
     openPlayer(card.dataset.player);
   }));
   $$('[data-fav]').forEach(btn => btn.addEventListener('click', e => {
@@ -276,6 +311,7 @@ function renderPlayers() {
   }));
 }
 
+
 function toggleFavorite(name) {
   const i = state.favorites.indexOf(name);
   if (i >= 0) state.favorites.splice(i,1); else state.favorites.push(name);
@@ -287,16 +323,18 @@ function openPlayer(name) {
   currentPlayer = p;
   const bought = state.roster.find(r => r.playerName === p.name);
   const details = [
-    ['PMA %', p.pmaPct != null ? `${fmt(Number(p.pmaPct)*100)}%` : '—'], ['PMA 500', fmt(p.pmaCredits)], ['Prezzo 2025', fmtInt(p.price2025)], ['Fantateam 2025', p.fantateam2025 || '—'],
+    ['PMA %', p.pmaPct != null ? `${fmt(Number(p.pmaPct)*100)}%` : '—'], ['PMA 500', fmt(p.pmaCredits)], ['Quotazione', fmtInt(p.quotation)], ['Prezzo 2025', fmtInt(p.price2025)],
+    ['Titolarità', p.titolarita != null ? `${fmtInt(p.titolarita)}/5` : '—'], ['Affidabilità', p.affidabilita != null ? `${fmtInt(p.affidabilita)}/5` : '—'], ['Integrità', p.integrita != null ? `${fmtInt(p.integrita)}/5` : '—'], ['FMV Exp.', fmt(p.fmvExpected)],
     ['Voto', fmt(p.vote)], ['Fantavoto', fmt(p.fantavote)], ['Presenze', fmtInt(p.appearances)], ['Titolare', fmtInt(p.starts)],
-    ['Gol', fmtInt(p.goals)], ['Assist', fmtInt(p.assists)], ['Ammonizioni', fmtInt(p.yellow)], ['Espulsioni', fmtInt(p.red)]
+    ['Minuti', fmtInt(p.minutes)], ['Gol', fmtInt(p.goals)], ['Assist', fmtInt(p.assists)], ['Ammonizioni', fmtInt(p.yellow)],
+    ['Espulsioni', fmtInt(p.red)], ['Rigori segnati', fmtInt(p.pensScored)], ['Rigori sbagliati', fmtInt(p.pensMissed)], ['Fantateam 2025', p.fantateam2025 || '—']
   ];
   if ((p.roles||[]).includes('Por')) details.push(['Gol subiti', fmtInt(p.goalsConceded)], ['Rigori parati', fmtInt(p.pensSaved)]);
   $('#playerDialogContent').innerHTML = `
     <div class="modal-head"><div></div><button class="modal-close" data-close="playerDialog">×</button></div>
     <div class="detail-hero">
-      <div class="player-avatar">${initials(p.name)}</div>
-      <div><p class="eyebrow">${escapeHtml(p.team || p.teamCode || '—')} · QUOT. ${fmtInt(p.quotation)}</p><h2>${escapeHtml(p.name)}</h2><div class="role-badges">${roleBadges(p.roles)}</div></div>
+      ${playerPortrait(p, 'detail-portrait')}
+      <div class="detail-player-copy"><p class="eyebrow">${escapeHtml(p.team || p.teamCode || '—')} · QUOT. ${fmtInt(p.quotation)}</p><h2>${escapeHtml(p.name)}</h2>${p.fullName && p.fullName !== p.name ? `<p class="detail-full-name">${escapeHtml(p.fullName)}</p>` : ''}<div class="role-badges">${roleBadges(p.roles)}</div></div>
     </div>
     <div class="detail-grid">${details.map(([k,v]) => `<div class="detail-metric"><span>${k}</span><strong>${escapeHtml(String(v))}</strong></div>`).join('')}</div>
     <div class="detail-actions">
@@ -309,12 +347,13 @@ function openPlayer(name) {
   if (!$('#playerDialog').open) $('#playerDialog').showModal();
 }
 
+
 function openBuy(name, purchaseId=null) {
   const p = playerByName(name); if (!p) return;
   currentPlayer = p; editingPurchaseId = purchaseId || null;
   const existing = purchaseId ? purchaseById(purchaseId) : null;
   $('#buyPlayerName').textContent = p.name;
-  $('#buyPlayerMeta').innerHTML = `<span>${escapeHtml(p.team || '—')}</span>${roleBadges(p.roles)}`;
+  $('#buyPlayerMeta').innerHTML = `<div class="buy-player-identity">${playerPortrait(p, 'buy-portrait')}<div><strong>${escapeHtml(p.team || '—')}</strong><div class="role-badges">${roleBadges(p.roles)}</div></div></div>`;
   $('#buyPrice').value = existing?.price || '';
   $('#buyRole').innerHTML = (p.roles || []).map(r => `<option value="${r}" ${existing?.budgetRole === r ? 'selected' : ''}>${r} · fascia ${budgetGroupForRole(r)}</option>`).join('');
   $('#buyDialog').showModal();
@@ -349,7 +388,7 @@ function renderRoster() {
   $('#rosterRows').innerHTML = state.roster.map(r => {
     const p = playerByName(r.playerName) || { name:r.playerName, roles:[] };
     return `<tr>
-      <td><div class="roster-player"><div class="player-avatar">${initials(p.name)}</div><div><strong>${escapeHtml(p.name)}</strong><div class="muted" style="font-size:10px;margin-top:2px">${escapeHtml(p.team || '—')}</div></div></div></td>
+      <td><div class="roster-player">${playerPortrait(p, 'roster-portrait')}<div><strong>${escapeHtml(p.name)}</strong><div class="muted" style="font-size:10px;margin-top:2px">${escapeHtml(p.team || '—')}</div></div></div></td>
       <td><div class="role-badges" style="margin:0">${roleBadges(p.roles)}</div></td>
       <td><span class="role-badge role-${r.budgetRole}">${r.budgetRole}</span></td>
       <td><strong>${fmtInt(r.price)}</strong></td><td>${fmt(p.pmaCredits)}</td>
@@ -414,7 +453,7 @@ function renderField() {
     const purchase = lineup[id] ? purchaseById(lineup[id]) : null;
     const p = purchase ? playerByName(purchase.playerName) : null;
     return `<div class="pitch-slot ${p ? '' : 'slot-empty'}" data-slot="${id}" style="left:${x}%;top:${y}%">
-      <div class="slot-card"><span class="slot-role">${label}</span><span class="slot-name">${p ? escapeHtml(shortName(p.name)) : '＋ scegli'}</span></div>
+      <div class="slot-card">${p && p.photoUrl ? `<img class="slot-photo" src="${escapeAttr(p.photoUrl)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<span class="slot-role">${label}</span><span class="slot-name">${p ? escapeHtml(shortName(p.name)) : '＋ scegli'}</span></div>
     </div>`;
   }).join('');
   $$('.pitch-slot').forEach(el => el.onclick = () => openSlot(el.dataset.slot));
@@ -423,7 +462,7 @@ function renderField() {
   $('#benchCount').textContent = state.roster.length;
   $('#benchList').innerHTML = state.roster.length ? state.roster.map(r => {
     const p = playerByName(r.playerName) || {name:r.playerName,roles:[]};
-    return `<div class="bench-player ${usedIds.has(r.id) ? 'used' : ''}" data-bench="${r.id}"><div class="player-avatar">${initials(p.name)}</div><div class="bench-player-info"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml((p.roles||[]).join(' · '))}</span></div><strong>${fmtInt(r.price)}</strong></div>`;
+    return `<div class="bench-player ${usedIds.has(r.id) ? 'used' : ''}" data-bench="${r.id}">${playerPortrait(p, 'bench-portrait')}<div class="bench-player-info"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml((p.roles||[]).join(' · '))}</span></div><strong>${fmtInt(r.price)}</strong></div>`;
   }).join('') : `<p class="muted">Aggiungi prima dei giocatori alla rosa.</p>`;
 }
 
@@ -453,7 +492,7 @@ function renderSlotChoices() {
   $('#slotPlayers').innerHTML = choices.length ? choices.map(r => {
     const p = playerByName(r.playerName) || {name:r.playerName,roles:[]};
     const compatible = (p.roles||[]).some(role => accept.includes(role));
-    return `<button class="slot-choice" data-slot-player="${r.id}"><div class="player-avatar">${initials(p.name)}</div><div class="slot-choice-info"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml((p.roles||[]).join(' · '))}${compatible ? '' : ' · adattato'}</span></div><strong>${fmtInt(r.price)}</strong></button>`;
+    return `<button class="slot-choice" data-slot-player="${r.id}">${playerPortrait(p, 'slot-choice-portrait')}<div class="slot-choice-info"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml((p.roles||[]).join(' · '))}${compatible ? '' : ' · adattato'}</span></div><strong>${fmtInt(r.price)}</strong></button>`;
   }).join('') : `<p class="muted">Nessun giocatore compatibile disponibile.</p>`;
   $$('[data-slot-player]').forEach(btn => btn.onclick = () => assignToSlot(btn.dataset.slotPlayer));
   $('#removeFromSlotBtn').classList.toggle('hidden', !lineup[currentSlotId]);

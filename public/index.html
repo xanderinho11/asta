@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css?v=2" />
 </head>
 <body>
   <div class="ambient ambient-a"></div>
@@ -96,21 +96,32 @@
             <select id="sortFilter" class="select compact">
               <option value="name">Nome A–Z</option>
               <option value="pma-desc">PMA più alto</option>
-              <option value="fvm-desc">FVM/1000</option>
+              <option value="titolarita-desc">Titolarità</option>
               <option value="price2025-desc">Prezzo 2025</option>
             </select>
             <button id="favoritesOnly" class="chip-toggle">☆ Preferiti</button>
           </div>
         </div>
 
-        <div class="section-head">
+        <div id="searchHint" class="search-hint">
+          <div class="search-hint-icon">⌕</div>
           <div>
-            <p class="eyebrow">LISTONE</p>
-            <h3 id="resultsTitle">Calciatori</h3>
+            <strong>Cerca un calciatore</strong>
+            <span>Il listone resta nascosto: scrivi un nome, scegli un ruolo oppure apri i preferiti.</span>
           </div>
-          <span id="resultsCount" class="count-pill">0</span>
         </div>
-        <div id="playersGrid" class="players-grid"></div>
+
+        <div id="resultsSection" class="results-section hidden">
+          <div class="section-head search-results-head">
+            <div>
+              <p class="eyebrow">RISULTATI</p>
+              <h3 id="resultsTitle">Calciatori</h3>
+            </div>
+            <span id="resultsCount" class="count-pill">0</span>
+          </div>
+          <div id="playersGrid" class="players-list"></div>
+          <p id="resultsLimitNote" class="results-limit-note hidden"></p>
+        </div>
       </section>
 
       <section id="tab-roster" class="tab-panel">
@@ -274,6 +285,6 @@
     </div>
   </dialog>
 
-  <script src="/app.js"></script>
+  <script src="/app.js?v=2"></script>
 </body>
 </html>
