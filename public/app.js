@@ -219,8 +219,9 @@ function roleChips(roles=[]) {
 }
 
 function playerPortrait(p, extraClass='') {
-  const photo = p?.photoUrl ? `<img class="player-photo" src="${escapeAttr(p.photoUrl)}" alt="${escapeAttr(p.name || 'Calciatore')}" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">` : '';
-  const fallbackHidden = p?.photoUrl ? ' hidden' : '';
+  const photoSrc = p?.id ? `/api/player-photo/${encodeURIComponent(p.id)}` : '';
+  const photo = photoSrc ? `<img class="player-photo" src="${escapeAttr(photoSrc)}" alt="${escapeAttr(p.name || 'Calciatore')}" loading="lazy" onerror="this.classList.add('hidden');this.nextElementSibling.classList.remove('hidden')">` : '';
+  const fallbackHidden = photoSrc ? ' hidden' : '';
   return `<div class="player-portrait ${extraClass}">
     ${photo}<div class="player-photo-fallback${fallbackHidden}">${initials(p?.name)}</div>
     <div class="role-stack">${roleChips(p?.roles || [])}</div>
@@ -453,7 +454,7 @@ function renderField() {
     const purchase = lineup[id] ? purchaseById(lineup[id]) : null;
     const p = purchase ? playerByName(purchase.playerName) : null;
     return `<div class="pitch-slot ${p ? '' : 'slot-empty'}" data-slot="${id}" style="left:${x}%;top:${y}%">
-      <div class="slot-card">${p && p.photoUrl ? `<img class="slot-photo" src="${escapeAttr(p.photoUrl)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<span class="slot-role">${label}</span><span class="slot-name">${p ? escapeHtml(shortName(p.name)) : '＋ scegli'}</span></div>
+      <div class="slot-card">${p && p.id ? `<img class="slot-photo" src="/api/player-photo/${encodeURIComponent(p.id)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}<span class="slot-role">${label}</span><span class="slot-name">${p ? escapeHtml(shortName(p.name)) : '＋ scegli'}</span></div>
     </div>`;
   }).join('');
   $$('.pitch-slot').forEach(el => el.onclick = () => openSlot(el.dataset.slot));
